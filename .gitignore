@@ -1,0 +1,37 @@
+# Secrets and sensitive data
+.env
+config.txt
+data/detections.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Instance-specific data -- not committed, same as FoundStone
+data/extracted.json
+data/strongisland.db
+data/strongisland.db-shm
+data/strongisland.db-wal
+ui/node_modules/
+ui/dist/
+.DS_Store
+.env.rtf
+
+# Local Splunk sink -- Tailscale node identity/state, not portable across machines
+splunk/tailscale-data/

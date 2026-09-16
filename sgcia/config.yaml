@@ -1,0 +1,189 @@
+# Strong Island's collector config for sgcia-otelcol (Security Ginger
+# Collect It All -- https://github.com/mickbrowns1/securitygingercia),
+# replacing syslog-ng as the log-generator -> DataPipeline HEC forwarder.
+#
+# Faithfully reproduces syslog-ng.conf's exact HEC body shape so every
+# existing PowerQuery detection (STRONGISLAND_DETECTIONS.md) and the Lua
+# processor stage (datapipeline/parse_json_by_msgid.lua) keep working
+# completely unchanged -- both key off the *field names* this config
+# produces, not which tool produced them. See STRONGISLAND_PIPELINE.md
+# for the full field-by-field comparison against the old syslog-ng.conf.
+#
+# Two things intentionally do NOT match syslog-ng's behavior byte-for-byte
+# (neither is read by any current detection or by the Lua stage):
+#   - fields.syslog_severity: this build has no transform/OTTL processor
+#     (see ../syslog-collector/otelcol/builder-config.yaml -- receivers/
+#     exporters/extensions only, no processors), so the exact 0-7 syslog
+#     severity number can't be recomputed inline from `priority`. We ship
+#     the stanza syslog parser's *native* severity instead: fields.severity_text
+#     ("info", "warning", ...) and fields.severity_number (OTel's own scale).
+#     fields.syslog_facility is still exact (passed through unchanged).
+#   - HEC_INDEX: syslog-ng.conf's own destination body never actually
+#     referenced ${HEC_INDEX} either (grep it -- it's not there), so no
+#     index was ever being sent. Preserved as-is here for parity rather
+#     than "fixing" a pre-existing gap as part of this swap.
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  statuscfg:
+    endpoint: 0.0.0.0:7801
+    config_path: /etc/sgcia/config.yaml
+    metrics_url: http://127.0.0.1:8888/metrics
+
+receivers:
+  # The TCP receiver's operators list carries the &syslog_operators anchor
+  # (defined once here, referenced by the UDP receiver below) -- both
+  # receivers need the exact same field-mapping chain.
+  syslog/tcp:
+    protocol: rfc5424
+    tcp:
+      listen_address: "0.0.0.0:601"
+    enable_octet_counting: true # RFC 6587 -- what log-generator actually sends
+    operators: &syslog_operators
+      # 1) msgid -> sourcetype, mirroring syslog-ng.conf's r_set_sourcetype
+      #    rewrite rules exactly (same 14 mappings + same fallback name).
+      #    Each branch explicitly outputs to the shared `converge` noop --
+      #    without that, stanza's default "output to next operator in list"
+      #    wiring makes every branch cascade through all the others, and
+      #    whichever add-sourcetype operator is LAST in the list always wins
+      #    regardless of which route actually matched.
+      - type: router
+        id: route_sourcetype
+        routes:
+          - output: [st_panw]
+            expr: 'attributes.msg_id == "PANW"'
+          - output: [st_sshd]
+            expr: 'attributes.msg_id == "SSHD"'
+          - output: [st_sudo]
+            expr: 'attributes.msg_id == "SUDO"'
+          - output: [st_pam]
+            expr: 'attributes.msg_id == "PAM"'
+          - output: [st_http]
+            expr: 'attributes.msg_id == "HTTP"'
+          - output: [st_cron]
+            expr: 'attributes.msg_id == "CRON"'
+          - output: [st_audit]
+            expr: 'attributes.msg_id == "AUDIT"'
+          - output: [st_duo]
+            expr: 'attributes.msg_id == "DUO"'
+          - output: [st_proxy]
+            expr: 'attributes.msg_id == "PROXY"'
+          - output: [st_dns]
+            expr: 'attributes.msg_id == "DNS"'
+          - output: [st_email]
+            expr: 'attributes.msg_id == "EMAIL"'
+          - output: [st_dbaudit]
+            expr: 'attributes.msg_id == "DBAUDIT"'
+          - output: [st_winevent]
+            expr: 'attributes.msg_id == "WINEVENT"'
+          - output: [st_cloudtrail]
+            expr: 'attributes.msg_id == "CLOUDTRAIL"'
+        default: [st_fallback]
+      - {type: add, id: st_panw,       field: attributes.sourcetype, value: paloalto_ts_parser,          output: [converge]}
+      - {type: add, id: st_sshd,       field: attributes.sourcetype, value: openssh_ts_parser,           output: [converge]}
+      - {type: add, id: st_sudo,       field: attributes.sourcetype, value: sudo_ts_parser,              output: [converge]}
+      - {type: add, id: st_pam,        field: attributes.sourcetype, value: pam_ts_parser,               output: [converge]}
+      - {type: add, id: st_http,       field: attributes.sourcetype, value: apache_ts_parser,            output: [converge]}
+      - {type: add, id: st_cron,       field: attributes.sourcetype, value: cron_ts_parser,              output: [converge]}
+      - {type: add, id: st_audit,      field: attributes.sourcetype, value: linux_netfilter_ts_parser,   output: [converge]}
+      - {type: add, id: st_duo,        field: attributes.sourcetype, value: cisco_duo_ts_parser,         output: [converge]}
+      - {type: add, id: st_proxy,      field: attributes.sourcetype, value: zscaler_ts_parser,           output: [converge]}
+      - {type: add, id: st_dns,        field: attributes.sourcetype, value: isc_bind_ts_parser,          output: [converge]}
+      - {type: add, id: st_email,      field: attributes.sourcetype, value: mimecast_ts_parser,          output: [converge]}
+      - {type: add, id: st_dbaudit,    field: attributes.sourcetype, value: postgresql_ts_parser,        output: [converge]}
+      - {type: add, id: st_winevent,   field: attributes.sourcetype, value: windows_security_ts_parser,  output: [converge]}
+      - {type: add, id: st_cloudtrail, field: attributes.sourcetype, value: aws_cloudtrail_ts_parser,    output: [converge]}
+      - {type: add, id: st_fallback,   field: attributes.sourcetype, value: syslog_generic_ts_parser,    output: [converge]}
+      - type: noop
+        id: converge
+
+      # 2) Rename the stanza syslog parser's native attribute names to what
+      #    the Lua stage and every PowerQuery detection actually expect at
+      #    the top level (msgid, datasource, syslog_facility) -- see
+      #    STRONGISLAND_PIPELINE.md's field reference table.
+      - {type: move, id: rename_msgid,      from: attributes.msg_id,   to: attributes.msgid}
+      - {type: move, id: rename_datasource, from: attributes.appname, to: attributes.datasource}
+      - {type: move, id: rename_facility,   from: attributes.facility, to: attributes.syslog_facility}
+
+      # 3) Static enrichment, mirroring syslog-ng.conf's r_add_tags rewrite rule.
+      - {type: add, id: add_tags,  field: attributes.tags,  value: strongisland-simulation}
+      - {type: add, id: add_agent, field: attributes.agent, value: sgcia-forwarder}
+
+      # 4) Drop attributes we don't want cluttering fields{} (none of these
+      #    are read by any detection or the Lua stage -- see header comment).
+      #    Guarded with `if:` since RFC 5424 PROCID/etc. are sometimes
+      #    entirely absent rather than "-" (e.g. DUO messages) -- stanza's
+      #    remove operator errors on a missing field otherwise, which
+      #    doesn't drop the entry (on_error defaults to send) but logs a
+      #    noisy error every time.
+      - {type: remove, id: drop_proc_id,      field: attributes.proc_id,      if: 'attributes.proc_id != nil'}
+      - {type: remove, id: drop_priority,     field: attributes.priority,     if: 'attributes.priority != nil'}
+      - {type: remove, id: drop_version,      field: attributes.version,     if: 'attributes.version != nil'}
+      - {type: remove, id: drop_facility_txt, field: attributes.facility_text, if: 'attributes.facility_text != nil'}
+
+      # 5) body <- the actual message payload (JSON or plain text), matching
+      #    syslog-ng's event=${MESSAGE} -- NOT the full raw RFC 5424 line.
+      - {type: move, id: message_to_body, from: attributes.message, to: body}
+
+  syslog/udp:
+    protocol: rfc5424
+    udp:
+      listen_address: "0.0.0.0:514"
+    operators: *syslog_operators
+
+exporters:
+  splunk_hec/datapipeline:
+    endpoint: ${HEC_URL}
+    token: ${HEC_TOKEN}
+    # host: our own "hostname" attribute (RFC 5424 HOSTNAME field), not this
+    # collector's own OS hostname (translator.DefaultHecToOtelAttrs() default
+    # is host.name, which nothing here sets).
+    # source/sourcetype/index: blanked out on purpose -- no attribute is ever
+    # literally named "", so the exporter never extracts a *top-level* HEC
+    # source/sourcetype/index, and our own `sourcetype` attribute (plus every
+    # other attribute above) falls through into the event's nested fields{}
+    # object instead. This is exactly syslog-ng.conf's shape: it never sets
+    # top-level source/sourcetype/index either, only fields.sourcetype.
+    otel_attrs_to_hec_metadata:
+      host: hostname
+      source: ""
+      sourcetype: ""
+      index: ""
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+      queue_size: 1000
+    retry_on_failure:
+      enabled: true
+      initial_interval: 500ms
+      max_interval: 30s
+
+  # Feeds statuscfg's own web UI (the log viewer at http://<host>:7801/) --
+  # POSTs every log record to statuscfg's loopback /internal/logs, which
+  # keeps a fixed 500-entry ring buffer served back out at GET /logs.
+  # Without this, the web UI's health/config/topology pages still work
+  # (they come from the Prometheus scrape + config file, not this
+  # exporter), but the log viewer stays permanently empty.
+  logbuffer:
+    endpoint: http://127.0.0.1:7801
+
+service:
+  extensions: [health_check, statuscfg]
+  pipelines:
+    logs/syslog:
+      receivers: [syslog/tcp, syslog/udp]
+      exporters: [splunk_hec/datapipeline, logbuffer]
+  telemetry:
+    metrics:
+      # statuscfg (below) scrapes this Prometheus endpoint to build its
+      # /status JSON -- level: none would disable the endpoint entirely
+      # (and fails config validation with no readers anyway).
+      level: basic
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 127.0.0.1
+                port: 8888

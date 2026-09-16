@@ -1,0 +1,170 @@
+services:
+  # Rule verification app (ported from FoundStone, rebranded to Strong Island --
+  # the engine itself is tenant-agnostic, so only the branding changed).
+  # Reads your tenant's real deployed rule library (data/extracted.json, not
+  # committed to any repo -- supply your own, same as FoundStone's own setup),
+  # overlays synthetic field values onto real templates, ingests into SDL, and
+  # verifies alerts fire.
+  verifier:
+    build: .
+    container_name: nexus-verifier
+    ports:
+      - "8091:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./.env:/app/.env
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # log-generator -> sgcia -> DataPipeline HEC -> SDL. Requires HEC_URL /
+  # HEC_TOKEN in .env.
+  #
+  # sgcia (Security Ginger Collect It All -- Mick's own OpenTelemetry
+  # Collector fork: https://github.com/mickbrowns1/securitygingercia)
+  # replaced syslog-ng here. Built directly from that repo's `main` branch
+  # via a git-context build (Docker clones the repo and builds its
+  # root-level Dockerfile) -- no local checkout required, so anyone who
+  # clones this repo can build the stack with nothing else on disk. This
+  # tracks main, so a change pushed there (e.g. a webUI update) reaches
+  # StrongIsland on the next `docker compose build sgcia`, same as before.
+  # sgcia/config.yaml (below, bind-mounted at runtime) reproduces
+  # syslog-ng.conf's exact HEC field shape -- see that file's header
+  # comment and STRONGISLAND_PIPELINE.md for the full comparison, including
+  # the two fields (syslog_severity, HEC_INDEX) that don't match
+  # byte-for-byte and why that's fine.
+  sgcia:
+    build:
+      context: https://github.com/mickbrowns1/securitygingercia.git#main
+    image: superheroes-sgcia:latest
+    container_name: nexus-sgcia
+    restart: unless-stopped
+    ports:
+      - "515:514/udp"
+      - "602:601/tcp"
+      - "7811:7801" # statuscfg's own web UI (health/config/topology/log viewer) -- plain HTTP, no auth
+    volumes:
+      - ./sgcia/config.yaml:/etc/sgcia/config.yaml:ro
+    environment:
+      - HEC_URL=${HEC_URL}
+      - HEC_TOKEN=${HEC_TOKEN}
+      - HEC_INDEX=${HEC_INDEX:-strongisland}
+    networks:
+      - log-net
+    depends_on:
+      - log-generator
+
+  log-generator:
+    build:
+      context: ./log-generator
+    container_name: nexus-log-generator
+    restart: unless-stopped
+    environment:
+      - SYSLOG_HOST=sgcia
+      - SYSLOG_PORT=601
+      - LOG_INTERVAL_MS=${LOG_INTERVAL_MS:-4000}
+      - LOG_BURST=${LOG_BURST:-2}
+      - SCENARIO_CHANCE=${SCENARIO_CHANCE:-0.01}
+      # For direct SentinelOne EDR ingestion only (bypasses DataPipeline).
+      - SDL_BASE_URL=${SDL_BASE_URL}
+      - SDL_WRITE_TOKEN=${SDL_WRITE_TOKEN}
+    networks:
+      - log-net
+
+  # Ops/diagnostics dashboard for this stack. The container's main process
+  # is the web dashboard (http://localhost:8092) -- open it in a browser.
+  # The original interactive terminal tool is still available on demand, as
+  # a second independent session:
+  #   docker exec -it nexus-watchtower python3 watchtower.py
+  #
+  # PRIVILEGE NOTE: /var/run/docker.sock is mounted read-write so Watchtower
+  # can inspect stats/health, tail logs, exec into, and restart the other 3
+  # containers -- host-level Docker control, not just this container's own.
+  # The project directory is ALSO bind-mounted read-write, at the identical
+  # absolute path it lives at on the host (HOST_PROJECT_DIR) -- required so
+  # that when Watchtower runs `docker compose` against the mounted host
+  # socket (Docker-outside-of-Docker), the compose client's relative-path
+  # resolution (./.env, ./log-generator, ...) matches real host paths, not
+  # this container's own filesystem. This is what lets Watchtower's
+  # Environments tool rewrite .env and recreate log-generator/sgcia/
+  # verifier with new SDL/HEC values applied. Altogether this is equivalent
+  # to root on the Docker host plus write access to this repo, reachable
+  # over HTTP with no authentication -- only run this on a trusted machine,
+  # and don't publish port 8092 any wider than your own local access.
+  watchtower:
+    build:
+      context: ./watchtower
+    container_name: nexus-watchtower
+    restart: unless-stopped
+    ports:
+      - "8092:8000"
+    environment:
+      - HOST_PROJECT_DIR=${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/superheroes}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/mnt/data:ro
+      - watchtower-db:/mnt/watchtower-db
+      - ${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/superheroes}:${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/superheroes}
+    networks:
+      - log-net
+      - default
+    depends_on:
+      - verifier
+      - sgcia
+      - log-generator
+
+  # --- Optional local Splunk sink, exposed publicly via Tailscale Funnel ---
+  # See splunk/README.md for full install/usage, including the `tailscale
+  # funnel` command and why HEC requires https+insecure as the backend
+  # target. Requires TS_AUTHKEY and SPLUNK_PASSWORD in .env; not started
+  # by default unless you bring these services up explicitly.
+  #
+  # NOTE: splunk shares ts-splunk's network namespace (network_mode:
+  # service:ts-splunk). Restarting ts-splunk alone silently breaks splunk's
+  # connectivity (it stays "running" but unreachable) -- always restart
+  # both together: docker compose restart ts-splunk splunk
+  ts-splunk:
+    image: tailscale/tailscale:latest
+    container_name: ts-splunk
+    hostname: local-splunk
+    environment:
+      TS_AUTHKEY: "${TS_AUTHKEY}"
+      TS_STATE_DIR: "/var/lib/tailscale"
+    ports:
+      - "8000:8000"
+      - "8088:8088"
+    volumes:
+      - ./splunk/tailscale-data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+
+  splunk:
+    image: splunk/splunk:latest
+    container_name: splunk-free
+    platform: linux/amd64
+    network_mode: service:ts-splunk
+    environment:
+      SPLUNK_PASSWORD: "${SPLUNK_PASSWORD}"
+      SPLUNK_START_ARGS: "--accept-license"
+      SPLUNK_GENERAL_TERMS: "--accept-sgt-current-at-splunk-com"
+      SPLUNK_LICENSE_URI: "Free"
+      SPLUNK_BINDIP: "0.0.0.0"
+      SPLUNK_SKIP_PREINSTALL_CPU_CHECKS_CORRUPTING_DATA_IF_UNSUPPORTED: "1"
+    volumes:
+      - splunk_etc:/opt/splunk/etc
+      - splunk_var:/opt/splunk/var
+    depends_on:
+      - ts-splunk
+    restart: unless-stopped
+
+volumes:
+  watchtower-db:
+  splunk_etc:
+  splunk_var:
+
+networks:
+  log-net:
+    driver: bridge

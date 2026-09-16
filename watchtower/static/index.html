@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watchtower</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.78em' font-size='90'>&#128737;</text></svg>" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="shield-icon" viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M32 2 L60 12 V34 C60 52 48 64 32 70 C16 64 4 52 4 34 V12 Z"
+              fill="url(#shieldGrad)" stroke="#0d0d0d" stroke-width="2" />
+        <circle cx="32" cy="30" r="10" fill="none" stroke="var(--cyan)" stroke-width="3" />
+        <circle cx="32" cy="30" r="3" fill="var(--cyan)" />
+        <line x1="32" y1="14" x2="32" y2="20" stroke="var(--cyan)" stroke-width="3" stroke-linecap="round" />
+        <line x1="32" y1="40" x2="32" y2="46" stroke="var(--cyan)" stroke-width="3" stroke-linecap="round" />
+        <line x1="16" y1="30" x2="22" y2="30" stroke="var(--cyan)" stroke-width="3" stroke-linecap="round" />
+        <line x1="42" y1="30" x2="48" y2="30" stroke="var(--cyan)" stroke-width="3" stroke-linecap="round" />
+        <defs>
+          <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2b3a4a" />
+            <stop offset="1" stop-color="#101820" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-mark">WATCHTOWER</span>
+        <span class="brand-sub">Ops console</span>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="dashboard">Watchtower Floor</button>
+      <button class="tab" data-tab="diagnostics">Vitals Check</button>
+      <button class="tab" data-tab="sources">Signal Intercepts</button>
+      <button class="tab" data-tab="scenarios">Mission Briefing</button>
+      <button class="tab" data-tab="environments">Satellite Outposts</button>
+      <button class="tab" data-tab="logs">The Vault</button>
+    </nav>
+  </header>
+
+  <main id="app">
+    <!-- Dashboard -->
+    <section class="panel active" id="panel-dashboard">
+      <div class="panel-head">
+        <h2>Service health</h2>
+        <button class="btn ghost" onclick="loadDashboard()">Refresh</button>
+      </div>
+      <div id="status-cards" class="card-grid"></div>
+
+      <div class="panel-head">
+        <h2>Container &amp; resources</h2>
+      </div>
+      <div id="resources-table"></div>
+    </section>
+
+    <!-- Diagnostics -->
+    <section class="panel" id="panel-diagnostics">
+      <div class="panel-head">
+        <h2>Environment summary</h2>
+        <button class="btn ghost" onclick="loadEnvSummary()">Refresh</button>
+      </div>
+      <div id="env-summary"></div>
+
+      <div class="panel-head">
+        <h2>TLS &amp; certificates</h2>
+        <button class="btn ghost" onclick="loadTls()">Refresh</button>
+      </div>
+      <div id="tls-results"></div>
+
+      <div class="panel-head">
+        <h2>DNS resolution</h2>
+        <button class="btn ghost" onclick="loadDns()">Refresh</button>
+      </div>
+      <div id="dns-results"></div>
+
+      <div class="panel-head">
+        <h2>Volume &amp; disk</h2>
+        <button class="btn ghost" onclick="loadVolume()">Refresh</button>
+      </div>
+      <div id="volume-results"></div>
+    </section>
+
+    <!-- Sources -->
+    <section class="panel" id="panel-sources">
+      <div class="panel-head">
+        <h2>Sources &amp; destinations</h2>
+        <button class="btn ghost" onclick="loadSources()">Refresh</button>
+      </div>
+      <div id="sources-results"></div>
+
+      <div class="panel-head">
+        <h2>Proxy &amp; connectivity</h2>
+        <button class="btn ghost" onclick="loadConnectivity()">Refresh</button>
+      </div>
+      <div id="connectivity-results"></div>
+
+      <div class="panel-head">
+        <h2>Source ports</h2>
+        <button class="btn ghost" onclick="loadPorts()">Refresh</button>
+      </div>
+      <div id="ports-results"></div>
+
+      <div class="panel-head">
+        <h2>Signal Check <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">(syslog tester)</span></h2>
+        <button class="btn" onclick="runSyslogTest()">Ping the relay</button>
+      </div>
+      <div id="syslog-test-result" class="muted">Sends one probe event to sgcia:601 and confirms the pipeline's events_in counter increments.</div>
+
+      <div class="panel-head">
+        <h2>Syslog stream (live)</h2>
+        <label class="toggle"><input type="checkbox" id="stream-toggle" onchange="toggleStream(this.checked)"> Poll every 2s</label>
+      </div>
+      <div id="stream-results"></div>
+    </section>
+
+    <!-- Scenarios -->
+    <section class="panel" id="panel-scenarios">
+      <div class="panel-head">
+        <h2>Fire a scenario</h2>
+      </div>
+      <div class="form-row">
+        <select id="scenario-select"><option value="">Loading…</option></select>
+        <button class="btn" onclick="fireScenario()">Fire</button>
+        <button class="btn danger" onclick="fireScenario(true)">Fire ALL 24</button>
+      </div>
+
+      <div class="panel-head">
+        <h2>Fire scenarios by detection category</h2>
+      </div>
+      <div class="form-row">
+        <select id="category-select"><option value="">Loading…</option></select>
+        <button class="btn" onclick="fireCategory()">Fire category</button>
+      </div>
+
+      <div class="panel-head">
+        <h2>Send one test log per source</h2>
+      </div>
+      <div class="form-row">
+        <button class="btn" onclick="fireSources()">Send 15 test events (all sources + EDR)</button>
+      </div>
+
+      <div class="panel-head">
+        <h2>Output</h2>
+      </div>
+      <pre id="scenario-output" class="output">Fire something above to see output here.</pre>
+    </section>
+
+    <!-- Environments -->
+    <section class="panel" id="panel-environments">
+      <div class="panel-head">
+        <h2>Field outposts <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">(saved environments)</span></h2>
+        <button class="btn ghost" onclick="loadEnvironments()">Refresh</button>
+      </div>
+      <div id="environments-table"></div>
+
+      <div class="panel-head">
+        <h2>Snapshot current config <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">(capture current .env)</span></h2>
+      </div>
+      <div class="form-row">
+        <input type="text" id="capture-name" placeholder="name (blank = auto-timestamped)" />
+        <button class="btn" onclick="captureEnvironment()">Snapshot it</button>
+      </div>
+
+      <div class="panel-head">
+        <h2 id="add-env-heading">Register outpost <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">(add environment)</span></h2>
+        <button class="btn ghost" id="cancel-edit-btn" style="display:none" onclick="cancelEditEnvironment()">Cancel</button>
+      </div>
+      <div id="edit-mode-banner" class="muted" style="display:none">
+        Reconfiguring <strong id="edit-mode-name"></strong> — leave any token field blank to keep its current value.
+      </div>
+      <form id="add-env-form" class="stacked-form" onsubmit="return addEnvironment(event)">
+        <label>Name <input type="text" name="name" required /></label>
+        <label>HEC_URL <input type="text" name="HEC_URL" placeholder="https://ingest.<region>.sentinelone.net/services/collector/event" /></label>
+        <label>HEC_TOKEN <input type="password" name="HEC_TOKEN" placeholder="(leave blank to keep current)" /></label>
+        <label>HEC_INDEX <input type="text" name="HEC_INDEX" /></label>
+        <label>SDL_BASE_URL <input type="text" name="SDL_BASE_URL" placeholder="https://xdr.us1.sentinelone.net" /></label>
+        <label>SDL_READ_TOKEN <input type="password" name="SDL_READ_TOKEN" placeholder="(leave blank to keep current)" /></label>
+        <label>SDL_WRITE_TOKEN <input type="password" name="SDL_WRITE_TOKEN" placeholder="(leave blank to keep current)" /></label>
+        <label>SDL_ACCOUNT_ID <input type="text" name="SDL_ACCOUNT_ID" /></label>
+        <button class="btn" type="submit" id="env-form-submit">Register outpost</button>
+      </form>
+      <div id="env-form-result" class="muted"></div>
+    </section>
+
+    <!-- Logs -->
+    <section class="panel" id="panel-logs">
+      <div class="panel-head">
+        <h2>Container logs</h2>
+      </div>
+      <div class="form-row">
+        <select id="logs-container">
+          <option value="verifier">Debrief (verifier)</option>
+          <option value="sgcia">Comms Relay (sgcia)</option>
+          <option value="log-generator" selected>Signal Forge (log-generator)</option>
+        </select>
+        <input type="number" id="logs-lines" value="50" min="1" max="2000" style="width:6rem" />
+        <button class="btn" onclick="fetchLogs()">Fetch</button>
+        <label class="toggle"><input type="checkbox" id="logs-follow-toggle" onchange="toggleLogsFollow(this.checked)"> Follow (poll 2s)</label>
+      </div>
+      <pre id="logs-output" class="output">Pick a container and hit Fetch.</pre>
+      <p class="muted">Need an interactive shell instead? <code>docker exec -it nexus-watchtower python3 watchtower.py</code> still has that (option 9), or exec directly into the target container.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Watchtower — internal tooling, SentinelOne.
+    <span class="privilege-note">Docker-socket + repo-write privileged. Only run on a trusted machine.</span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

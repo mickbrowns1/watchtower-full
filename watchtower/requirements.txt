@@ -1,0 +1,5 @@
+rich>=13
+docker>=7.0
+pyfiglet>=1.0
+fastapi>=0.115
+uvicorn>=0.32
