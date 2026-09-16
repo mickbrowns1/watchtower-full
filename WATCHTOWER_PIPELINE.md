@@ -1,17 +1,17 @@
 # DataPipeline Integration Notes
 
-Hard-won rules for how the Strong Island Log Simulator's events flow into
+Hard-won rules for how the Watchtower Log Simulator's events flow into
 SentinelOne DataPipeline and the Singularity Data Lake. Read this before
 wiring up the DataPipeline pipeline — most of these were discovered the hard
 way (carried over unchanged from the FoundStone/Treadstone build this project
-was forked from; only the *content* is Strong Island-themed, the pipeline
+was forked from; only the *content* is Watchtower-themed, the pipeline
 mechanics are identical).
 
 **The forwarder is [sgcia](https://github.com/mickbrowns1/securitygingercia)**
 (Security Ginger Collect It All — Mick's own OpenTelemetry Collector fork),
 **not syslog-ng** — see [sgcia's field-mapping mechanics](#sgcias-field-mapping-mechanics)
 below for why that swap needed zero changes here or in
-[`STRONGISLAND_DETECTIONS.md`](STRONGISLAND_DETECTIONS.md): `sgcia/config.yaml`
+[`WATCHTOWER_DETECTIONS.md`](WATCHTOWER_DETECTIONS.md): `sgcia/config.yaml`
 reproduces syslog-ng.conf's exact HEC body shape, field name for field name.
 
 **This covers every source except SentinelOne EDR** (`msgid = S1EDR`), which
@@ -200,7 +200,7 @@ directly in the Python event builder, since it bypasses this Lua stage
 | `DNS` | `ISC BIND` | No real match -- invented |
 | `DBAUDIT` | `PostgreSQL` | No real match -- invented |
 
-None of this mapping changed for the Strong Island reskin — only the literal
+None of this mapping changed for the Watchtower reskin — only the literal
 field *values* (hostnames, usernames, app names, table names) changed. The
 field *shapes* and the `DATASOURCE_BY_MSGID` lookup are untouched from the
 FoundStone/Treadstone build, so no Lua changes were required for the theme
@@ -223,7 +223,7 @@ produced by that one serializer, same element order every time). It
 rebuilds the **exact same** `winEventLog.data.event.eventData.<lowerCamelCase>`
 nesting the old JSON-decode path used to produce — `winEventLog.id`,
 `.channel`, `.providerName`, `.description`, and every
-`winEventLog.data.event.eventData.*` field STRONGISLAND_DETECTIONS.md's
+`winEventLog.data.event.eventData.*` field WATCHTOWER_DETECTIONS.md's
 queries and this tenant's real deployed Windows Event Logs rules already
 reference — so **no detection needs to change**, even though the wire
 format switched from JSON to XML.
@@ -286,7 +286,7 @@ flavor — don't join on it.
 
 The Lua processor stage is data-shape-agnostic — it keys entirely off
 `msgid`, never off literal field values — so swapping the generator's content
-from the Bourne universe to the Strong Island roster required **zero**
+from the Bourne universe to the Watchtower roster required **zero**
 changes to `parse_json_by_msgid.lua`. This was confirmed directly: one real
 sample line per `msgid` was generated from the current `generate_logs.py`
 (ambient generators *and* all 24 scripted scenarios) and run through the
@@ -315,7 +315,7 @@ So `msgid = S1EDR` events skip `sgcia`/DataPipeline entirely:
 dotted-key `attrs` shape (`_flatten()`) and POSTs directly to
 `{SDL_BASE_URL}/api/addEvents` using `SDL_WRITE_TOKEN` — the same credential
 already configured for the verifier app itself (see `docker-compose.yml`'s
-`log-generator` service). Events are tagged `strongisland-simulation`. No
+`log-generator` service). Events are tagged `watchtower-simulation`. No
 console pipeline changes needed when adding new EDR event types.
 
 Because there's no envelope/root-merge step for these events, the field
@@ -324,6 +324,6 @@ collision rules above don't apply to EDR — whatever key names appear in
 
 ## See also
 
-- [`STRONGISLAND_DETECTIONS.md`](STRONGISLAND_DETECTIONS.md) — PowerQuery detections, scoped by `msgid`.
+- [`WATCHTOWER_DETECTIONS.md`](WATCHTOWER_DETECTIONS.md) — PowerQuery detections, scoped by `msgid`.
 - [`sgcia/config.yaml`](sgcia/config.yaml) — the forwarder config (sourcetype mapping, HEC destination). Not used by `S1EDR`.
 - [github.com/mickbrowns1/securitygingercia](https://github.com/mickbrowns1/securitygingercia) — sgcia itself (the OpenTelemetry Collector fork + Rust dashboard/edit TUI). `docker-compose.yml` builds it directly from that repo's `main` branch via a git-context build (its own root-level `Dockerfile`, not `sgcia/Dockerfile` — that file no longer exists here), so no local checkout is required.

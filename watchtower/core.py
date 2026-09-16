@@ -67,7 +67,7 @@ DATA_MOUNT = "/mnt/data"
 HOST_PROJECT_DIR = os.getenv("HOST_PROJECT_DIR", "")
 ENV_FILE = os.path.join(HOST_PROJECT_DIR, ".env") if HOST_PROJECT_DIR else None
 COMPOSE_FILE = os.path.join(HOST_PROJECT_DIR, "docker-compose.yml") if HOST_PROJECT_DIR else None
-COMPOSE_PROJECT = "superheroes"
+COMPOSE_PROJECT = "watchtower-full"
 WATCHTOWER_DB = "/mnt/watchtower-db/environments.db"
 
 # .env keys that fully describe "which tenant is this stack pointed at" --

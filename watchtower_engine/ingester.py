@@ -1,7 +1,7 @@
 """
 ingester.py — Ingest synthetic events into SDL via the ``addEvents`` endpoint.
 
-Each ingestion call uses a session name prefixed with ``strongisland-`` so events
+Each ingestion call uses a session name prefixed with ``watchtower-`` so events
 can be identified and cleaned up later.
 """
 
@@ -56,7 +56,7 @@ def ingest_events(
     # indexed (bytesCharged: 0), so every ingest looked successful while
     # dropping the event.
     now_ns = now_ms * 1_000_000
-    session_name = f"strongisland-{now_ms}"
+    session_name = f"watchtower-{now_ms}"
     if session_tag:
         session_name = f"{session_name}-{session_tag}"
 

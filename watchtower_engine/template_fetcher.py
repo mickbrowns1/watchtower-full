@@ -2,7 +2,7 @@
 template_fetcher.py — Fetch real event templates from SDL for a given dataSource.name.
 
 Templates are cached in memory so each unique source is only queried once per
-Strong Island run.  If no events are found for a source the result is an empty list
+Watchtower run.  If no events are found for a source the result is an empty list
 and the calling rule is marked ``no_template``.
 """
 

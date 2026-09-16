@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Strong Island Log Simulator
+Watchtower Log Simulator
 Generates realistic Palo Alto Networks firewall + Linux auth logs populated
 with data from 90s/2000s rap artists, labels, and industry figures, and ships
 them to sgcia via TCP.
@@ -291,7 +291,7 @@ INTERNAL_IPS = [
 ]
 
 # Geolocation for each external IP — used by Cisco Duo's access_device.location
-# block. Strong Island roster's home cities/regions.
+# block. Watchtower roster's home cities/regions.
 IP_GEO = {
     "96.8.124.201":   {"city": "Compton",     "state": "California",  "country": "United States"},
     "70.161.29.44":   {"city": "Long Beach",  "state": "California",  "country": "United States"},
@@ -767,7 +767,7 @@ def gen_panw_globalprotect() -> str:
 
 def gen_panw_threat() -> str:
     """Ambient PAN-OS Threat log -- generic malware/vulnerability hits, always
-    caught (action=deny/reset/block). Named Strong Island-universe signatures
+    caught (action=deny/reset/block). Named Watchtower-universe signatures
     only appear inside the dedicated scripted scenarios, not here."""
     fw  = random.choice(PANW_FIREWALLS)
     src = random.choice(EXTERNAL_IPS)
@@ -783,7 +783,7 @@ def gen_panw_threat() -> str:
     return _panw_line(fw["host"], event, sev=4)
 
 def _panw_ids_line(host: str, threat_name: str, src_ip: str, dst_ip: str, sev: int = 2) -> str:
-    """Scenario-only Threat log hit for a named Strong Island-universe signature
+    """Scenario-only Threat log hit for a named Watchtower-universe signature
     (PAN-OS's real sub_type=vulnerability -- a custom/fictional IPS signature)."""
     event = _panw_event("THREAT", src_ip=src_ip, dst_ip=dst_ip, action="allow",
                          sub_type="vulnerability", threat_name=threat_name, severity="critical")
@@ -1500,13 +1500,13 @@ def _edr_line(event: dict, sev: int = 6) -> None:
         return None
 
     attrs = _flatten(event)
-    attrs["tags"] = "strongisland-simulation"
+    attrs["tags"] = "watchtower-simulation"
     now_ms = int(time.time() * 1000)
     now_ns = now_ms * 1_000_000  # addEvents requires nanoseconds since epoch -- a
                                   # millisecond `ts` is silently dropped (bytesCharged=0)
     payload = json.dumps({
         "token": SDL_WRITE_TOKEN,
-        "session": f"strongisland-edr-{now_ms}-{random.randint(0, 999999)}",
+        "session": f"watchtower-edr-{now_ms}-{random.randint(0, 999999)}",
         "events": [{"ts": str(now_ns), "attrs": attrs}],
     }).encode("utf-8")
     req = urllib.request.Request(
@@ -2145,7 +2145,7 @@ POPULATION = [fn for weight, fn in GENERATORS for _ in range(weight)]
 # ─── TCP sender ───────────────────────────────────────────────────────────────
 
 def send_logs(sock: socket.socket) -> int:
-    """Emit one burst. Occasionally fires a correlated Strong Island scenario instead.
+    """Emit one burst. Occasionally fires a correlated Watchtower scenario instead.
     Returns the number of events sent."""
     if SCENARIOS and random.random() < SCENARIO_CHANCE:
         title, lines = random.choice(SCENARIOS)()
@@ -2183,7 +2183,7 @@ def connect() -> socket.socket:
 
 def main() -> None:
     log.info(
-        f"Strong Island Log Simulator starting — "
+        f"Watchtower Log Simulator starting — "
         f"target={SYSLOG_HOST}:{SYSLOG_PORT} "
         f"burst={BURST_SIZE} interval={INTERVAL_MS}ms"
     )
@@ -2200,7 +2200,7 @@ def main() -> None:
             prev = total
             total += sent
             if total // 100 != prev // 100:
-                log.info(f"[STRONGISLAND-SIM] {total} log events emitted")
+                log.info(f"[WATCHTOWER-SIM] {total} log events emitted")
 
         except (ConnectionRefusedError, OSError, BrokenPipeError) as exc:
             log.warning(f"Connection error: {exc} — retrying in 5s")

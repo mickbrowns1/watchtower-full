@@ -1,12 +1,12 @@
-# Strong Island's collector config for sgcia-otelcol (Security Ginger
+# Watchtower's collector config for sgcia-otelcol (Security Ginger
 # Collect It All -- https://github.com/mickbrowns1/securitygingercia),
 # replacing syslog-ng as the log-generator -> DataPipeline HEC forwarder.
 #
 # Faithfully reproduces syslog-ng.conf's exact HEC body shape so every
-# existing PowerQuery detection (STRONGISLAND_DETECTIONS.md) and the Lua
+# existing PowerQuery detection (WATCHTOWER_DETECTIONS.md) and the Lua
 # processor stage (datapipeline/parse_json_by_msgid.lua) keep working
 # completely unchanged -- both key off the *field names* this config
-# produces, not which tool produced them. See STRONGISLAND_PIPELINE.md
+# produces, not which tool produced them. See WATCHTOWER_PIPELINE.md
 # for the full field-by-field comparison against the old syslog-ng.conf.
 #
 # Two things intentionally do NOT match syslog-ng's behavior byte-for-byte
@@ -102,13 +102,13 @@ receivers:
       # 2) Rename the stanza syslog parser's native attribute names to what
       #    the Lua stage and every PowerQuery detection actually expect at
       #    the top level (msgid, datasource, syslog_facility) -- see
-      #    STRONGISLAND_PIPELINE.md's field reference table.
+      #    WATCHTOWER_PIPELINE.md's field reference table.
       - {type: move, id: rename_msgid,      from: attributes.msg_id,   to: attributes.msgid}
       - {type: move, id: rename_datasource, from: attributes.appname, to: attributes.datasource}
       - {type: move, id: rename_facility,   from: attributes.facility, to: attributes.syslog_facility}
 
       # 3) Static enrichment, mirroring syslog-ng.conf's r_add_tags rewrite rule.
-      - {type: add, id: add_tags,  field: attributes.tags,  value: strongisland-simulation}
+      - {type: add, id: add_tags,  field: attributes.tags,  value: watchtower-simulation}
       - {type: add, id: add_agent, field: attributes.agent, value: sgcia-forwarder}
 
       # 4) Drop attributes we don't want cluttering fields{} (none of these

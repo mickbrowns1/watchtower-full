@@ -5,7 +5,7 @@ The template provides realistic context (user names, IPs, resource IDs, etc.)
 so the synthetic event looks plausible.  The overlay adds or replaces exactly
 the fields needed to satisfy the detection rule's conditions.
 
-All synthetic events are tagged with ``_strongisland_test: true`` and
+All synthetic events are tagged with ``_watchtower_test: true`` and
 ``_rule_id: <id>`` for easy identification and cleanup.
 """
 
@@ -33,7 +33,7 @@ def build_event(
         Flat ``{dotted.key: value}`` dict from a real SDL event.
     overlay:
         Flat ``{dotted.key: value}`` dict of fields required to fire the rule
-        (produced by :func:`~strongisland.rule_parser.ParsedRule.overlay`).
+        (produced by :func:`~watchtower.rule_parser.ParsedRule.overlay`).
     rule_id:
         The rule's UUID, stored in ``_rule_id`` for cleanup queries.
     novel_field:
@@ -67,8 +67,8 @@ def build_event(
         event[novel_field] = new_value
         modified_fields[novel_field] = new_value
 
-    # Strong Island housekeeping tags
-    event["_strongisland_test"] = True
+    # Watchtower housekeeping tags
+    event["_watchtower_test"] = True
     event["_rule_id"] = rule_id
 
     return event, modified_fields

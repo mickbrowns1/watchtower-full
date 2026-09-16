@@ -150,13 +150,13 @@ log-generator ──RFC 5424/6587 over TCP──▶ sgcia ──HEC (one POST/ev
 
 The forwarder is [sgcia](https://github.com/mickbrowns1/securitygingercia)
 (Security Ginger Collect It All — a custom OpenTelemetry Collector
-distribution), not syslog-ng — see [STRONGISLAND_PIPELINE.md](STRONGISLAND_PIPELINE.md#sgcias-field-mapping-mechanics)
+distribution), not syslog-ng — see [WATCHTOWER_PIPELINE.md](WATCHTOWER_PIPELINE.md#sgcias-field-mapping-mechanics)
 for the swap and why it needed zero changes to the Lua stage or any
 detection.
 
 ### What it generates
 
-**On-prem / SaaS security sources:** Palo Alto Networks Firewall (Traffic/Threat/GlobalProtect logs), Linux Audit (sshd/sudo/PAM/cron/kernel), Apache HTTP Server access logs, Cisco Duo MFA (authentication + administrator logs), Zscaler Internet Access, ISC BIND DNS, Mimecast email security, PostgreSQL, Windows Event Logs. Every source is tagged with a real `dataSource.name`/`dataSource.category` grounded in this tenant's own deployed rule library where a match exists, and field shapes for Palo Alto, Duo, and Windows Event Logs are grounded in that same rule library rather than raw vendor wire formats (see `STRONGISLAND_PIPELINE.md`'s tagging table).
+**On-prem / SaaS security sources:** Palo Alto Networks Firewall (Traffic/Threat/GlobalProtect logs), Linux Audit (sshd/sudo/PAM/cron/kernel), Apache HTTP Server access logs, Cisco Duo MFA (authentication + administrator logs), Zscaler Internet Access, ISC BIND DNS, Mimecast email security, PostgreSQL, Windows Event Logs. Every source is tagged with a real `dataSource.name`/`dataSource.category` grounded in this tenant's own deployed rule library where a match exists, and field shapes for Palo Alto, Duo, and Windows Event Logs are grounded in that same rule library rather than raw vendor wire formats (see `WATCHTOWER_PIPELINE.md`'s tagging table).
 
 **AWS (CloudTrail):** modeled as a **hardened** AWS Organization on purpose, one account per faction (Avengers, Justice League, X-Men, Wakanda) — MFA-enforced `AssumeRole` sessions only (no root usage, no long-lived access keys in normal traffic), encrypted S3 (SSE-KMS), least-privilege roles per program, and API calls only ever from known corporate egress IPs. Root usage, disabled logging, privilege escalation, and MFA-less logins are deliberately **never** ambient — they only appear inside the dedicated attack scenarios, so a detection firing on them means something actually happened.
 
@@ -174,7 +174,7 @@ Gotham Rogue/Wakanda and Suicide Squad/Legion of Doom — each emits a short
 burst of events across multiple sources sharing actors/hosts/IPs, so you can
 pivot host→user→IP across firewall, identity, proxy, DB, cloud, and EDR
 telemetry. Full list and detection mappings:
-[STRONGISLAND_DETECTIONS.md](STRONGISLAND_DETECTIONS.md).
+[WATCHTOWER_DETECTIONS.md](WATCHTOWER_DETECTIONS.md).
 
 ### Starting it
 
@@ -182,12 +182,12 @@ telemetry. Full list and detection mappings:
 # In .env, add (found in DataPipeline UI: Pipelines > Sources > + Add Source > HTTP Event Collector):
 HEC_URL=https://ingest.<region>.sentinelone.net/services/collector/event
 HEC_TOKEN=<your DataPipeline HEC token>
-HEC_INDEX=strongisland
+HEC_INDEX=watchtower
 
 docker compose up -d --build sgcia log-generator
 ```
 
-You'll also need a **Lua processor stage** in the DataPipeline pipeline itself — the built-in `parse_json` step has no per-source gating and throws on the plain-text sources. Use [datapipeline/parse_json_by_msgid.lua](datapipeline/parse_json_by_msgid.lua) (verified locally with `datapipeline/test_parse_json_by_msgid.lua`, and against real reskinned generator output — see [STRONGISLAND_PIPELINE.md](STRONGISLAND_PIPELINE.md)'s "Verified against the reskinned generator" section); see [STRONGISLAND_PIPELINE.md](STRONGISLAND_PIPELINE.md) for the full integration notes (field collisions, sourcetype routing, reliability behavior).
+You'll also need a **Lua processor stage** in the DataPipeline pipeline itself — the built-in `parse_json` step has no per-source gating and throws on the plain-text sources. Use [datapipeline/parse_json_by_msgid.lua](datapipeline/parse_json_by_msgid.lua) (verified locally with `datapipeline/test_parse_json_by_msgid.lua`, and against real reskinned generator output — see [WATCHTOWER_PIPELINE.md](WATCHTOWER_PIPELINE.md)'s "Verified against the reskinned generator" section); see [WATCHTOWER_PIPELINE.md](WATCHTOWER_PIPELINE.md) for the full integration notes (field collisions, sourcetype routing, reliability behavior).
 
 **SentinelOne EDR events don't go through any of this** — they bypass sgcia/DataPipeline entirely and post straight into SDL (matching how real EDR telemetry actually arrives), reusing the `SDL_BASE_URL`/`SDL_WRITE_TOKEN` already in `.env` for the verifier app itself. No console changes needed for these.
 
@@ -204,7 +204,7 @@ docker exec nexus-log-generator python3 fire_scenario.py --category A           
 docker exec nexus-log-generator python3 fire_sources.py                         # one test event per data source
 ```
 
-See [STRONGISLAND_DETECTIONS.md](STRONGISLAND_DETECTIONS.md) for the full PowerQuery detection library and the scenario → detection mapping table. [Watchtower Ops Console](#watchtower-ops-console--stack-diagnostics--remediation-dashboard) below wraps all three of these as menu options.
+See [WATCHTOWER_DETECTIONS.md](WATCHTOWER_DETECTIONS.md) for the full PowerQuery detection library and the scenario → detection mapping table. [Watchtower Ops Console](#watchtower-ops-console--stack-diagnostics--remediation-dashboard) below wraps all three of these as menu options.
 
 ---
 
@@ -293,12 +293,12 @@ live-updating syslog throughput view, and three ways to generate on-demand
 traffic:
 
 - **Fire a scenario** — any one of the 24 by (partial) name, or all of them (wraps `fire_scenario.py`, same as [Firing scenarios](#firing-scenarios-on-demand) above).
-- **Fire scenarios by detection category (A–H)** — fires every scenario that triggers at least one detection in a given `STRONGISLAND_DETECTIONS.md` category (e.g. category `C` fires everything that lights up a named-signature detection). Good for exercising a whole category's detections in one shot instead of naming scenarios one at a time.
+- **Fire scenarios by detection category (A–H)** — fires every scenario that triggers at least one detection in a given `WATCHTOWER_DETECTIONS.md` category (e.g. category `C` fires everything that lights up a named-signature detection). Good for exercising a whole category's detections in one shot instead of naming scenarios one at a time.
 - **Send one test log per source** — fires one representative event for each of the 15 data sources (all 14 syslog-forwarded `msgid`s plus the direct-to-SDL `S1EDR` path), for confirming every source is actually reaching SDL — most useful right after standing up the stack or switching environments, before waiting on ambient traffic or a full scenario.
 
 **Field Outposts (Environments) — swap which SentinelOne tenant this stack
 talks to,** backed by a small SQLite database (`watchtower-db` volume,
-independent from the Verifier's own `data/extracted.json`/`strongisland.db`):
+independent from the Verifier's own `data/extracted.json`/`watchtower.db`):
 
 - **Snapshot current config** (capture current) — snapshots the live `.env`'s `HEC_URL`/`HEC_TOKEN`/`HEC_INDEX`/`SDL_BASE_URL`/`SDL_READ_TOKEN`/`SDL_WRITE_TOKEN`/`SDL_ACCOUNT_ID` as a named profile — the safe way to save "what's running right now" before trying something else.
 - **Register outpost** (add) — manually enter a profile for a different tenant (token fields are masked on input).
@@ -347,7 +347,7 @@ The following are mounted from your host into the container so they survive rebu
 
 | Path | Contents |
 |---|---|
-| `data/strongisland.db` | SQLite — Verifier's environments, deployed rule names |
+| `data/watchtower.db` | SQLite — Verifier's environments, deployed rule names |
 | `.env` | Fallback env vars (config via UI is preferred); also read/written by Watchtower's Environments tool |
 | `watchtower-db` (named volume) | SQLite — Watchtower's saved SDL/HEC environment profiles |
 
@@ -358,9 +358,9 @@ The following are mounted from your host into the container so they survive rebu
 ## Architecture
 
 ```
-strongisland/
+watchtower/
   api.py                  # FastAPI backend
-  strongisland/
+  watchtower/
     classifier.py         # Rule class detection (simple/volume/correlation/first_seen/scheduled)
     rule_parser.py         # pair_list → minimal field overlay
     event_builder.py       # Deep-merge overlay onto real template
@@ -402,8 +402,8 @@ watchtower/                   # Stack diagnostics & remediation -- web dashboard
   watchtower.py              # rich + pyfiglet interactive tool (docker exec only now)
   Dockerfile                 # python:3.12-slim + the docker CLI + compose plugin (no daemon)
 
-STRONGISLAND_DETECTIONS.md   # PowerQuery detection library + scenario mapping
-STRONGISLAND_PIPELINE.md     # DataPipeline integration notes (hard-won)
+WATCHTOWER_DETECTIONS.md   # PowerQuery detection library + scenario mapping
+WATCHTOWER_PIPELINE.md     # DataPipeline integration notes (hard-won)
 CLAUDE.md                    # Theme/content brief — roster, factions, guidelines
 ```
 
@@ -411,7 +411,7 @@ CLAUDE.md                    # Theme/content brief — roster, factions, guideli
 
 ## Guardrails
 
-- All synthetic events are tagged `_strongisland_test: true` for easy cleanup
+- All synthetic events are tagged `_watchtower_test: true` for easy cleanup
 - Config UI warns when no active environment is set
 - Dry run mode is on by default — no events are ingested until you explicitly disable it
 - Never use against a production tenant

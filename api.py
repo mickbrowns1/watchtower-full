@@ -1,5 +1,5 @@
 """
-api.py — Strong Island FastAPI backend.
+api.py — Watchtower FastAPI backend.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from strongisland.db import (
+from watchtower_engine.db import (
     init_db, list_environments, get_environment, get_active_environment,
     create_environment, update_environment, delete_environment, set_active_environment,
     save_deployed_names, load_deployed_names, clear_deployed_names,
@@ -101,7 +101,7 @@ _EXECUTOR = ThreadPoolExecutor(max_workers=4)
 # App
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Strong Island")
+app = FastAPI(title="Watchtower")
 
 app.add_middleware(
     CORSMiddleware,
@@ -118,7 +118,7 @@ app.add_middleware(
 
 def _classify_rule(rule: dict[str, Any]) -> tuple[str, int]:
     try:
-        from strongisland.classifier import classify
+        from watchtower_engine.classifier import classify
         return classify(rule)
     except Exception:
         return "simple", 1
@@ -126,7 +126,7 @@ def _classify_rule(rule: dict[str, Any]) -> tuple[str, int]:
 
 def _parse_rule_queries(rule: dict[str, Any]) -> list[dict[str, Any]]:
     try:
-        from strongisland.rule_parser import parse_pair_list
+        from watchtower_engine.rule_parser import parse_pair_list
         enriched = []
         for q in rule.get("queries", []):
             pair_list = q.get("pair_list", [])
@@ -239,8 +239,8 @@ def _run_job(job_id: str, rules: list[dict[str, Any]], dry_run: bool, confirm_po
         _JOBS[job_id]["status"] = "running"
 
     try:
-        from strongisland.config import load_config
-        from strongisland.runner import run_rules
+        from watchtower_engine.config import load_config
+        from watchtower_engine.runner import run_rules
 
         original_dry_run = os.environ.get("DRY_RUN")
         if dry_run:

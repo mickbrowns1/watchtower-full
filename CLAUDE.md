@@ -1,4 +1,4 @@
-# StrongIsland Log Simulator — Project Brief
+# Watchtower Log Simulator — Project Brief
 
 This is a from-scratch synthetic security-event generator, built on the same
 architecture as `../FoundStone`'s "Treadstone Log Simulator" (Jason Bourne
@@ -9,7 +9,7 @@ directory so nothing there gets disturbed.
 **Note:** this project was originally rap/hip-hop themed (90s/2000s rap
 artists, labels, and industry figures) and has since been fully converted to
 the superhero theme below. The reskin is **complete** — `generate_logs.py`,
-`fire_scenario.py`, `STRONGISLAND_DETECTIONS.md`, `STRONGISLAND_PIPELINE.md`,
+`fire_scenario.py`, `WATCHTOWER_DETECTIONS.md`, `WATCHTOWER_PIPELINE.md`,
 `README.md`, and the `watchtower/` dashboard have all
 been updated. Check the actual file state before assuming anything below is
 still TODO — this doc may lag behind real progress.
@@ -33,7 +33,7 @@ still TODO — this doc may lag behind real progress.
 ## Current state
 
 ```
-StrongIsland/
+Watchtower/
   log-generator/          # Python generator — reskin COMPLETE
     generate_logs.py       # 102 operatives across 18 factions, 24 scenarios
     fire_scenario.py        # scenario-name → detection-category mapping, updated
@@ -45,8 +45,8 @@ StrongIsland/
   datapipeline/             # Lua processor stage — data-shape-agnostic, no reskin needed
     parse_json_by_msgid.lua
     test_parse_json_by_msgid.lua
-  foundstone/                # rule-verification backend package -- copied as-is from FoundStone,
-    ...                      # NOT theme-specific, no reskin needed
+  watchtower_engine/          # rule-verification backend package -- ported from FoundStone's
+    ...                      # `foundstone/` package (renamed only, logic NOT theme-specific)
   ui/                        # rule-verification React/Vite frontend -- copied as-is (source only;
     src/                     # node_modules/ and dist/ are gitignored, need `npm install && npm run build`)
     ...
@@ -70,8 +70,9 @@ pipeline's dataSource tagging engine, JSON/text-parsing logic, and
 `docker-compose.yml` wiring never needed to change.
 
 **Rule verification (the `verifier` container/service) is a separate,
-non-theme-specific capability** — mirrors FoundStone's own tool exactly (same
-`foundstone/` package name internally, not renamed). It tests your tenant's
+non-theme-specific capability** — mirrors FoundStone's own tool exactly (its
+backend package was renamed `foundstone/` → `watchtower_engine/` to match
+this project; the logic itself is untouched). It tests your tenant's
 *real deployed detection rules*, which have nothing to do with the theme — it
 works identically regardless of which log simulator is feeding synthetic
 data into SDL. To actually run it you still need to: supply your own
@@ -158,7 +159,7 @@ Power Ring, Simon Baz
 
 ## Scenarios (all corporate/financial/network-security framed, zero violence)
 
-24 scripted scenarios — see [STRONGISLAND_DETECTIONS.md](STRONGISLAND_DETECTIONS.md)
+24 scripted scenarios — see [WATCHTOWER_DETECTIONS.md](WATCHTOWER_DETECTIONS.md)
 for the full scenario → detection mapping. Highlights:
 
 - **Cosmic Cube Heist** (Thanos) — vault exfiltration
@@ -194,6 +195,6 @@ for the full tab/copy mapping.
 
 The reskin is complete. If you need to extend it (new scenarios, new
 factions, further doc polish), say something like: *"Read CLAUDE.md, then
-let's add [whatever's next] to the superhero-themed StrongIsland
+let's add [whatever's next] to the superhero-themed Watchtower
 simulator."* That gives a fresh session the current state without
 re-deriving any of it.

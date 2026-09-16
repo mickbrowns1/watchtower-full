@@ -1,5 +1,5 @@
 """
-config.py — Load and validate Strong Island runtime configuration from environment variables.
+config.py — Load and validate Watchtower runtime configuration from environment variables.
 
 All settings are read from the environment (or a .env file via python-dotenv).
 A safety check prevents accidental ingestion against production tenants.
@@ -23,7 +23,7 @@ _BLOCKED_URL_SUBSTRINGS: list[str] = ["prod", "production"]
 
 @dataclass(frozen=True)
 class Config:
-    """Immutable runtime configuration for Strong Island."""
+    """Immutable runtime configuration for Watchtower."""
 
     sdl_base_url: str
     sdl_read_token: str

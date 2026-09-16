@@ -4,15 +4,15 @@ Fire superhero-themed scenarios on demand into sgcia — for testing/demoing
 detections without waiting for the rare ambient SCENARIO_CHANCE roll.
 
 Run inside the generator container:
-  docker exec strongisland-log-generator python3 fire_scenario.py                     # list scenarios
-  docker exec strongisland-log-generator python3 fire_scenario.py nexus_registry_pull # fire one (partial name ok)
-  docker exec strongisland-log-generator python3 fire_scenario.py cosmic_cube 5       # fire 5 times
-  docker exec strongisland-log-generator python3 fire_scenario.py all                 # fire every scenario once
-  docker exec strongisland-log-generator python3 fire_scenario.py --category A       # fire every scenario that
+  docker exec nexus-log-generator python3 fire_scenario.py                     # list scenarios
+  docker exec nexus-log-generator python3 fire_scenario.py nexus_registry_pull # fire one (partial name ok)
+  docker exec nexus-log-generator python3 fire_scenario.py cosmic_cube 5       # fire 5 times
+  docker exec nexus-log-generator python3 fire_scenario.py all                 # fire every scenario once
+  docker exec nexus-log-generator python3 fire_scenario.py --category A       # fire every scenario that
                                                                                        # triggers an A-category detection
 
 Each scenario shares host/user/IP across sources so the correlation detections
-light up. See STRONGISLAND_DETECTIONS.md for which scenario triggers which detection.
+light up. See WATCHTOWER_DETECTIONS.md for which scenario triggers which detection.
 """
 import os
 import sys
@@ -26,10 +26,10 @@ PORT = int(os.getenv("SYSLOG_PORT", "601"))
 SCMAP = {(fn.__name__[3:] if fn.__name__.startswith("sc_") else fn.__name__): fn
          for fn in g.SCENARIOS}
 
-# Detection-category letter (STRONGISLAND_DETECTIONS.md section headers) -> the
+# Detection-category letter (WATCHTOWER_DETECTIONS.md section headers) -> the
 # scenario names (fire_scenario.py names, i.e. SCMAP keys) that trigger at
 # least one detection in that category. Hand-maintained from the "Firing
-# detections on demand" table in STRONGISLAND_DETECTIONS.md -- update both
+# detections on demand" table in WATCHTOWER_DETECTIONS.md -- update both
 # together if a scenario's detection mapping changes.
 CATEGORY_SCENARIOS = {
     "A": {  # A1b, A2, A4, A5, A7, A8, A9 -- technique detections
@@ -37,7 +37,7 @@ CATEGORY_SCENARIOS = {
         "squad_doom_rivalry", "accords_breach_lateral", "nexus_registry_pull",
         "jleague_financial_audit", "banner_legal_hold", "shield_internal_watchdog",
         "multiverse_travel_anomaly", "xmen_solo_ops_sprawl", "hydra_defection",
-        "hawkeye_shield_dispute",  # intentionally below A5's threshold -- see STRONGISLAND_DETECTIONS.md
+        "hawkeye_shield_dispute",  # intentionally below A5's threshold -- see WATCHTOWER_DETECTIONS.md
     },
     "B": {"multiverse_travel_anomaly", "nexus_registry_pull"},  # A7/B1, B4 -- cross-source correlations
     "C": {  # C1-C7 -- named-signature detections

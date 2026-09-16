@@ -25,9 +25,9 @@ htmlcov/
 
 # Instance-specific data -- not committed, same as FoundStone
 data/extracted.json
-data/strongisland.db
-data/strongisland.db-shm
-data/strongisland.db-wal
+data/watchtower.db
+data/watchtower.db-shm
+data/watchtower.db-wal
 ui/node_modules/
 ui/dist/
 .DS_Store

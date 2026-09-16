@@ -7,11 +7,11 @@ new tenant (see Watchtower's Environments tool), to confirm every source is
 actually reaching SDL before you rely on ambient traffic or scenarios.
 
 Run inside the generator container:
-  docker exec strongisland-log-generator python3 fire_sources.py
+  docker exec nexus-log-generator python3 fire_sources.py
 
-See STRONGISLAND_PIPELINE.md's tagging table for the full msgid -> dataSource
+See WATCHTOWER_PIPELINE.md's tagging table for the full msgid -> dataSource
 mapping. SentinelOne EDR (msgid S1EDR) bypasses sgcia entirely and posts
-straight to SDL -- see STRONGISLAND_PIPELINE.md's "direct-to-SDL" section.
+straight to SDL -- see WATCHTOWER_PIPELINE.md's "direct-to-SDL" section.
 """
 import os
 import socket

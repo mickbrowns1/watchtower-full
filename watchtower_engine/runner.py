@@ -1,5 +1,5 @@
 """
-runner.py — Orchestrate the full Strong Island pipeline for one or many rules.
+runner.py — Orchestrate the full Watchtower pipeline for one or many rules.
 
 For each rule the pipeline is:
   1. Classify the rule (simple / volume / correlation / first_seen / scheduled)
@@ -41,7 +41,7 @@ STATUS_ERROR = "error"
 
 def run_rule(rule: dict[str, Any], cfg: Config) -> dict[str, Any]:
     """
-    Execute the full Strong Island pipeline for a single *rule*.
+    Execute the full Watchtower pipeline for a single *rule*.
 
     Parameters
     ----------
@@ -53,7 +53,7 @@ def run_rule(rule: dict[str, Any], cfg: Config) -> dict[str, Any]:
     Returns
     -------
     dict
-        A result dict matching the Strong Island output schema.
+        A result dict matching the Watchtower output schema.
     """
     rule_id: str = rule.get("id", "unknown")
     rule_name: str = rule.get("name", "unknown")

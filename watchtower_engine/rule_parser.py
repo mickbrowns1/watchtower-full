@@ -41,7 +41,7 @@ def _regex_to_example(pattern: str) -> str:
 
     # Fallback: strip all regex metacharacters and return what's left
     literal = re.sub(r"[\\^$.*+?{}[\]|()]", "", pattern)
-    return literal or "strongisland_match"
+    return literal or "watchtower_match"
 
 
 # ---------------------------------------------------------------------------

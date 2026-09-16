@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Watchtower — site diagnostics & remediation for the Strong Island Docker
+Watchtower — site diagnostics & remediation for the Watchtower Docker
 Compose stack (verifier, sgcia, log-generator).
 
 This is a thin rich-rendering layer over core.py, which also backs the web

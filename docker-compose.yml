@@ -1,5 +1,5 @@
 services:
-  # Rule verification app (ported from FoundStone, rebranded to Strong Island --
+  # Rule verification app (ported from FoundStone, rebranded to Watchtower --
   # the engine itself is tenant-agnostic, so only the branding changed).
   # Reads your tenant's real deployed rule library (data/extracted.json, not
   # committed to any repo -- supply your own, same as FoundStone's own setup),
@@ -27,16 +27,16 @@ services:
   # root-level Dockerfile) -- no local checkout required, so anyone who
   # clones this repo can build the stack with nothing else on disk. This
   # tracks main, so a change pushed there (e.g. a webUI update) reaches
-  # StrongIsland on the next `docker compose build sgcia`, same as before.
+  # Watchtower on the next `docker compose build sgcia`, same as before.
   # sgcia/config.yaml (below, bind-mounted at runtime) reproduces
   # syslog-ng.conf's exact HEC field shape -- see that file's header
-  # comment and STRONGISLAND_PIPELINE.md for the full comparison, including
+  # comment and WATCHTOWER_PIPELINE.md for the full comparison, including
   # the two fields (syslog_severity, HEC_INDEX) that don't match
   # byte-for-byte and why that's fine.
   sgcia:
     build:
       context: https://github.com/mickbrowns1/securitygingercia.git#main
-    image: superheroes-sgcia:latest
+    image: watchtower-full-sgcia:latest
     container_name: nexus-sgcia
     restart: unless-stopped
     ports:
@@ -48,7 +48,7 @@ services:
     environment:
       - HEC_URL=${HEC_URL}
       - HEC_TOKEN=${HEC_TOKEN}
-      - HEC_INDEX=${HEC_INDEX:-strongisland}
+      - HEC_INDEX=${HEC_INDEX:-watchtower}
     networks:
       - log-net
     depends_on:
@@ -99,12 +99,12 @@ services:
     ports:
       - "8092:8000"
     environment:
-      - HOST_PROJECT_DIR=${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/superheroes}
+      - HOST_PROJECT_DIR=${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/watchtower-full}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data:/mnt/data:ro
       - watchtower-db:/mnt/watchtower-db
-      - ${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/superheroes}:${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/superheroes}
+      - ${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/watchtower-full}:${HOST_PROJECT_DIR:-/Users/mick.brown/Documents/nate/watchtower-full}
     networks:
       - log-net
       - default

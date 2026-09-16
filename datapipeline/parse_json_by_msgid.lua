@@ -1,6 +1,6 @@
 -- DataPipeline pipeline processor stage (NOT a source collector).
 --
--- Fixes the gap documented in STRONGISLAND_PIPELINE.md: the console's built-in
+-- Fixes the gap documented in WATCHTOWER_PIPELINE.md: the console's built-in
 -- parse-json step has no per-source gating, so running it on every event
 -- throws "unable to parse json: expected value at line 1 column 1" on the
 -- text sources (DNS, SSHD, SUDO, PAM, HTTP, CRON, AUDIT, DBAUDIT) whose
@@ -8,7 +8,7 @@
 --
 -- This stage only parses `message` when `msgid` is one of the JSON sources
 -- (DUO, EMAIL, WINEVENT, CLOUDTRAIL, PROXY, PANW) and promotes the decoded keys to
--- top-level fields so STRONGISLAND_DETECTIONS.md queries (EventID,
+-- top-level fields so WATCHTOWER_DETECTIONS.md queries (EventID,
 -- TargetUserName, result, userIdentity.type, ...) work without the
 -- raw-message fallback syntax. Every other event passes through unchanged.
 --
@@ -27,11 +27,11 @@
 local json = require('json')
 local log = require('log')
 
--- msgid values whose message field is a JSON string, per STRONGISLAND_PIPELINE.md.
+-- msgid values whose message field is a JSON string, per WATCHTOWER_PIPELINE.md.
 -- WINEVENT is NOT here -- its message is genuine Windows Event Log XML (see
 -- generate_logs.py's _win_event_xml), handled by parseWINEVENT below instead.
 -- (SentinelOne EDR events never reach this pipeline at all -- they're ingested
--- directly into SDL, bypassing DataPipeline entirely. See STRONGISLAND_PIPELINE.md.)
+-- directly into SDL, bypassing DataPipeline entirely. See WATCHTOWER_PIPELINE.md.)
 local JSON_MSGIDS = { DUO = true, EMAIL = true, CLOUDTRAIL = true, PROXY = true, PANW = true }
 
 -- Real dataSource.name values, grounded in this tenant's own deployed rule
@@ -57,7 +57,7 @@ end
 
 -- Envelope/reserved keys DataPipeline already owns at the document root.
 -- A decoded key that collides with one of these is kept under jsonkeyed
--- instead of overwriting the envelope field, per STRONGISLAND_PIPELINE.md's
+-- instead of overwriting the envelope field, per WATCHTOWER_PIPELINE.md's
 -- "Avoid root-merge field collisions" section.
 local RESERVED_KEYS = {
     timestamp = true, time = true, host = true, message = true,
@@ -95,7 +95,7 @@ end
 -- what generate_logs.py actually emits (see the docstring above each
 -- generator in that file), not a real vendor's parser output -- SSHD/PAM/CRON
 -- are genuine OpenSSH/PAM/cron formats already; AUDIT is UFW/netfilter, not
--- true auditd, per STRONGISLAND_PIPELINE.md's Linux Audit naming note.
+-- true auditd, per WATCHTOWER_PIPELINE.md's Linux Audit naming note.
 
 -- NOTE: uses string.match(s, p) (plain function call) everywhere below, NOT
 -- s:match(p) (OOP method-call sugar). The two are equivalent in standard Lua,
@@ -207,7 +207,7 @@ local WINEVENT_DESCRIPTIONS = {
 -- Lua sandbox. Rebuilds the exact same
 -- winEventLog.data.event.eventData.<lowerCamelCase> nesting the old
 -- JSON-decode path produced, so this tenant's real deployed Windows Event
--- Logs rules and STRONGISLAND_DETECTIONS.md's queries need zero changes
+-- Logs rules and WATCHTOWER_DETECTIONS.md's queries need zero changes
 -- even though the wire format switched from JSON to XML. Returns nil (not
 -- an error) if the message doesn't contain a recognizable <EventID>, same
 -- "message stays intact, no crash" contract as every other text parser here.

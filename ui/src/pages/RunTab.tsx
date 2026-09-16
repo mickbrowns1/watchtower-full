@@ -53,7 +53,7 @@ export function RunTab({ selectedIds, onRemoveRule, onClearSelection, onJobResul
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `strongisland-results-${Date.now()}.json`
+    a.download = `watchtower-results-${Date.now()}.json`
     a.click()
     URL.revokeObjectURL(url)
   }

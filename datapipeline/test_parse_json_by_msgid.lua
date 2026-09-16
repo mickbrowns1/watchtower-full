@@ -90,7 +90,7 @@ end
 -- wire, so there's nothing to promote a collision from -- unlike the JSON
 -- msgids, this path doesn't touch RESERVED_KEYS/envelope fields at all).
 local winevent_event = {
-    msgid = "WINEVENT", datasource = "Security", tags = "strongisland-simulation",
+    msgid = "WINEVENT", datasource = "Security", tags = "watchtower-simulation",
     agent = "sgcia-forwarder", timestamp = "2026-08-18T18:42:21Z",
     message = fixtures.winevent_xml,
 }
@@ -190,7 +190,7 @@ assert_eq(r2f.dataSource.name, "Palo Alto Networks Firewall", "PANW dataSource.n
 -- table extracted by pattern-match -- so detections query real fields
 -- instead of `parse '...' from message` at query time in SDL.
 -- (S1EDR isn't covered here -- those events never reach this pipeline at
--- all; they're ingested directly into SDL. See STRONGISLAND_PIPELINE.md.)
+-- all; they're ingested directly into SDL. See WATCHTOWER_PIPELINE.md.)
 local sshd_accepted = { msgid = "SSHD", message = "Accepted publickey for noah.vosen from 10.0.1.10 port 51022 ssh2: RSA SHA256:abc" }
 local r3a = processEvent(sshd_accepted)
 assert_eq(r3a.dataSource.name, "Linux Audit", "SSHD dataSource.name set")

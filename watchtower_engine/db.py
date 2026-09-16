@@ -1,5 +1,5 @@
 """
-db.py — SQLite-backed environment store for Strong Island.
+db.py — SQLite-backed environment store for Watchtower.
 
 Stores named tenant configurations (SDL URLs, tokens, etc.) so multiple
 environments can be managed without touching .env files.
@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "strongisland.db"
+_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "watchtower.db"
 _LOCAL = threading.local()
 
 

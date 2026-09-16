@@ -1,11 +1,11 @@
-# Strong Island Detections — SentinelOne PowerQuery
+# Watchtower Detections — SentinelOne PowerQuery
 
 Detections for the simulator scenarios. **Scope every query by `msgid`** (the
 in-band router that survives DataPipeline on every event, text or JSON), then
 query the **expanded fields** — every source is pre-parsed in the DataPipeline
 Lua stage (`datapipeline/parse_json_by_msgid.lua`), JSON sources via
 `json.decode` and text sources via pattern-match, so no detection needs a
-PowerQuery `parse` clause at query time. See `STRONGISLAND_PIPELINE.md`.
+PowerQuery `parse` clause at query time. See `WATCHTOWER_PIPELINE.md`.
 
 ## Field reference
 
@@ -15,7 +15,7 @@ same way. Text sources get a namespaced field table extracted by the Lua stage's
 pattern-matchers (e.g. `dns.qname`, `dbaudit.rows`) — `message` still carries the
 raw line too, as a fallback. All field names below are grounded in this tenant's
 own deployed rules (`data/extracted.json`) where a real rule exists, or in the
-generator's own text format otherwise — see `STRONGISLAND_PIPELINE.md`.
+generator's own text format otherwise — see `WATCHTOWER_PIPELINE.md`.
 
 | Source (`msgid`) | Fields you query |
 |---|---|
@@ -35,7 +35,7 @@ generator's own text format otherwise — see `STRONGISLAND_PIPELINE.md`.
 | `HTTP` | `http.clientIp`, `http.user`, `http.method`, `http.path`, `http.status`, `http.bytes`, `http.userAgent` |
 | `CRON` | `cron.user`, `cron.command` |
 | `AUDIT` | `audit.srcIp`, `audit.dstIp`, `audit.proto`, `audit.srcPort`, `audit.dstPort` |
-| every source | `dataSource.name`, `dataSource.category` — see `STRONGISLAND_PIPELINE.md`'s tagging table |
+| every source | `dataSource.name`, `dataSource.category` — see `WATCHTOWER_PIPELINE.md`'s tagging table |
 
 > **If a JSON-source query returns zero, it's one of two things:**
 > 1. **A numeric ID typed as a string** → change `winEventLog.id = 4769` to `winEventLog.id = '4769'`. (Probe: `msgid='WINEVENT' | group n=count() by winEventLog.id`.)
@@ -73,7 +73,7 @@ msgid = 'EMAIL' event.type = 'TTP Impersonation Protection' unmapped.taggedMalic
 ### A2 — DNS beaconing to a rival-network / C2 domain  ·  T1071.004  *(text, pipeline-parsed)*
 > `dns.qname`/`dns.clientIp` are extracted in the DataPipeline Lua stage
 > (`parse_json_by_msgid.lua`'s `parseDNS`), not with a PowerQuery `parse`
-> clause at query time — see `STRONGISLAND_PIPELINE.md`'s text-parsing section.
+> clause at query time — see `WATCHTOWER_PIPELINE.md`'s text-parsing section.
 ```
 msgid = 'DNS'
 | filter dns.qname contains ('c2.', 'beacon.', 'exfil-relay', 'mastersvault', 'vault-leak', 'federation-trust', 'recon.')
@@ -313,7 +313,7 @@ emitted by any scenario (kept below as zero-expected guardrails).
 
 Unlike every other source in this simulator, `S1EDR` events bypass
 syslog-ng/DataPipeline and are ingested directly into SDL — see
-[STRONGISLAND_PIPELINE.md](STRONGISLAND_PIPELINE.md#sentinelone-edr-direct-to-sdl-not-datapipeline).
+[WATCHTOWER_PIPELINE.md](WATCHTOWER_PIPELINE.md#sentinelone-edr-direct-to-sdl-not-datapipeline).
 No console pipeline changes are needed for these queries to work.
 
 ### E1 — Credential dumping via mimikatz  ·  T1003.001  *(Accords Breach Lateral Movement)*
@@ -379,7 +379,7 @@ msgid = 'CLOUDTRAIL' eventName = 'GetObject' requestParameters.key contains 'sin
 ## H. Cross-label scope detections
 
 ### H1 — Auditor account touching 3+ factions' power-registry schemas in one session  ·  T1078  *(Multiverse Nexus Audit)*
-> Two-stage `group` (not `count_distinct`) — see `STRONGISLAND_PIPELINE.md`'s
+> Two-stage `group` (not `count_distinct`) — see `WATCHTOWER_PIPELINE.md`'s
 > note on the scheduled-rule validator rejecting `count_distinct` inline.
 ```
 msgid = 'DBAUDIT'
@@ -412,9 +412,9 @@ Ambient scenarios are rare (`SCENARIO_CHANCE=0.02`), so to test/demo a
 detection without waiting, fire its scenario straight into syslog-ng:
 
 ```bash
-docker exec strongisland-log-generator python3 fire_scenario.py                     # list all scenarios
-docker exec strongisland-log-generator python3 fire_scenario.py nexus_registry_pull # fire one (partial name OK)
-docker exec strongisland-log-generator python3 fire_scenario.py all                 # fire every scenario once
+docker exec watchtower-log-generator python3 fire_scenario.py                     # list all scenarios
+docker exec watchtower-log-generator python3 fire_scenario.py nexus_registry_pull # fire one (partial name OK)
+docker exec watchtower-log-generator python3 fire_scenario.py all                 # fire every scenario once
 ```
 
 Scenario (`fire_scenario.py` name, i.e. the function name without its `sc_`

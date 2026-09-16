@@ -23,7 +23,7 @@ export function NavTabs({ active, onChange, runCount }: Props) {
   return (
     <nav className="flex items-center gap-1 px-4 py-2 border-b border-border bg-bg-deep">
       <div className="flex items-center gap-2 mr-6">
-        <span className="text-accent text-xl font-bold tracking-tight">Strong Island</span>
+        <span className="text-accent text-xl font-bold tracking-tight">Watchtower</span>
         <span className="text-xs text-gray-500 font-mono">v0.1</span>
       </div>
       {TABS.map((tab) => {

@@ -43,7 +43,7 @@ export function Dashboard({ recentResults, onQuickRun }: Props) {
           <div className="flex items-center gap-3">
             <span className="text-3xl">🎤</span>
             <div>
-              <h2 className="text-base font-semibold text-violet-200">Welcome to Strong Island</h2>
+              <h2 className="text-base font-semibold text-violet-200">Welcome to Watchtower</h2>
               <p className="text-sm text-violet-300/70 mt-0.5">Complete the steps below to start verifying detections</p>
             </div>
           </div>
@@ -55,12 +55,12 @@ export function Dashboard({ recentResults, onQuickRun }: Props) {
               body="Click Sync from Active Environment to pull the rules deployed on your tenant. Only those rules will be shown."
               done={!!stats?.synced} />
             <Step n={3} title="Upload Real Log Templates"
-              body="Drop a .jsonl file of real events from your source. Strong Island overlays detection fields onto these to generate synthetic test logs."
+              body="Drop a .jsonl file of real events from your source. Watchtower overlays detection fields onto these to generate synthetic test logs."
               done={!!stats && Object.keys(stats.template_sources ?? {}).length > 0} />
           </div>
           <div className="border-t border-violet-800 pt-4 text-xs text-violet-400 space-y-1">
-            <p><span className="font-semibold text-violet-300">How it works:</span> For each detection rule, Strong Island reads the filter logic, computes the minimal set of fields needed to fire it, overlays those onto a real event template, ingests to SDL, and verifies the alert fires.</p>
-            <p>All synthetic events are tagged <code className="bg-violet-900/50 px-1 rounded">_strongisland_test: true</code> for easy cleanup.</p>
+            <p><span className="font-semibold text-violet-300">How it works:</span> For each detection rule, Watchtower reads the filter logic, computes the minimal set of fields needed to fire it, overlays those onto a real event template, ingests to SDL, and verifies the alert fires.</p>
+            <p>All synthetic events are tagged <code className="bg-violet-900/50 px-1 rounded">_watchtower_test: true</code> for easy cleanup.</p>
           </div>
         </div>
       )}
